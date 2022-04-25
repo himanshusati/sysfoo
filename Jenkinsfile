@@ -27,7 +27,6 @@ pipeline {
       }
     }
 
-
      stage('Build Artifacts') {
           when {
                 branch 'master'
@@ -53,7 +52,7 @@ pipeline {
           steps {
             script {
               docker.withRegistry('https://index.docker.io/v1/', 'dockerlogin') {
-                def dockerImage = docker.build("initcron/sysfoo:v${env.BUILD_ID}", "./")
+                def dockerImage = docker.build("hsati/sysfoo:v${env.BUILD_ID}", "./")
                 dockerImage.push()
                 dockerImage.push("latest")
                 dockerImage.push("dev")
