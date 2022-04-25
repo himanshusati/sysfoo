@@ -9,7 +9,7 @@ pipeline {
 
       }
       steps {
-        echo 'building....'
+        echo 'compiling sysfoo app...'
         sh 'mvn compile'
       }
     }
@@ -22,41 +22,47 @@ pipeline {
 
       }
       steps {
-        echo 'testing....'
+        echo 'running unit tests....'
         sh 'mvn clean test'
       }
     }
 
-    stage('package') {
-      agent {
-        docker {
-          image 'maven:3.6.3-jdk-11-slim'
-        }
+     stage('Build Artifacts') {
+          when {
+                branch 'master'
+          }
 
-      }
-      steps {
-        echo 'packaging....'
-        sh 'mvn package -DskipTests'
-        archiveArtifacts 'target/*.war'
-        archiveArtifacts 'target/*war'
-      }
-    }
+      parallel {
+         stage('package') {
+          agent {
+            docker {
+              image 'maven:3.6.3-jdk-11-slim'
+            }
 
-    stage('Docker BnP') {
-      agent any
-      steps {
-        script {
-          docker.withRegistry('https://index.docker.io/v1/', 'dockerlogin') {
-            def dockerImage = docker.build("hsati/sysfoo:v${env.BUILD_ID}", "./")
-            dockerImage.push()
-            dockerImage.push("latest")
-            dockerImage.push("dev")
+          }
+          steps {
+            echo 'generating artifact....'
+            sh 'mvn package -DskipTests'
+            archiveArtifacts 'target/*.war'
           }
         }
 
+        stage('Docker BnP') {
+          agent any
+          steps {
+            script {
+              docker.withRegistry('https://index.docker.io/v1/', 'dockerlogin') {
+                def dockerImage = docker.build("hsati/sysfoo:v${env.BUILD_ID}", "./")
+                dockerImage.push()
+                dockerImage.push("latest")
+                dockerImage.push("dev")
+              }
+            }
+
+          }
+        }
       }
     }
-
   }
   tools {
     maven 'Maven 3.6.3'
